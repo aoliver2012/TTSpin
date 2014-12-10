@@ -78,6 +78,10 @@ float ttgamma3::SFtop(float pt){
 void ttgamma3::ParseInput()
 {
 
+  if (fMyOpt.Contains("debug"))
+    {
+      DEBUG = false;
+    }
   if (fMyOpt.Contains("muon") || fChannel == 1)
     {
       fChannel = 1;
@@ -179,6 +183,68 @@ void ttgamma3::WriteHistograms(const char* name, map<string, TH1*> hcontainer)
         temp->Write();
     }
 }
+
+//Takes four-vectors of the ttbar decay products, and performs a Lorentz boost on them, taking them to the ttbar rest frame
+//FIXME Will need to organize jets in a meaningful way...or use b-tag info vector to sort
+//FIXME this WILL NOT work until the b-tag assignments are made via the kinematic fitter, hence the name sorted!!!
+//FIXME The assignments will be lep-bjet, had-bjet, higher pT q-jet, lower pT q-jet in vec_jetsSorted
+void switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4MET,  bool DEBUG) {
+  
+  //Sum 4-vectors for calculating the boost
+  TLorentzVector p4topLep = p4lepton+p4MET;//+Vec_jetsSorted[0];  				//Form Top Quark 4-Vector: Leptonic
+  /*TLorentzVector p4topHad = Vec_jetsSorted[1]+Vec_jetsSorted[2]+Vec_jetsSorted[3];	//Form Top Quark 4-Vector: Hadronic
+
+  if (DEBUG){
+    printf ("At switch2TTbarFrame() \n" );
+    printf ("========================================================================= \n");
+    printf ("Using these vectors for LEPTON leg: \n");
+    printf ("========================================================================= \n");
+    printf ("p4lepton: %10f , %10f , %10f \n", p4lepton.Pt(), p4lepton.Eta(), p4lepton.Phi());
+    printf ("p4MET: %10f , %10f , %10f \n", p4MET.Pt(), p4MET.Eta(), p4MET.Phi());
+    printf ("Vec_jetsSorted[0]: %10f , %10f , %10f \n", Vec_jetsSorted[0].Pt(), Vec_jetsSorted[0].Eta(), Vec_jetsSorted[0].Phi());
+    printf ("========================================================================= \n");
+    printf ("Resulting boost vector: \n");
+    printf ("========================================================================= \n");
+    printf ("Before: %10f , %10f , %10f \n", p4topLep.Pt(), p4topLep.Eta(), p4topLep.Phi());
+    printf ("After: %10f , %10f , %10f \n\n", p4topLep.BoostVector().Pt(), p4topLep.BoostVector().Eta(), p4topLep.BoostVector().Phi());
+  }
+
+  //Boost the Lepton
+  p4lepton.Boost(-p4topLep.BoostVector());
+  
+  if (DEBUG) {
+    printf ("========================================================================= \n");
+    printf ("Using these vectors for HADRON leg: \n");
+    printf ("========================================================================= \n");
+    printf ("Vec_jetsSorted[2]: %10f , %10f , %10f \n", Vec_jetsSorted[2].Pt(), Vec_jetsSorted[2].Eta(), Vec_jetsSorted[2].Phi());
+    printf ("Vec_jetsSorted[3]: %10f , %10f , %10f \n", Vec_jetsSorted[3].Pt(), Vec_jetsSorted[3].Eta(), Vec_jetsSorted[3].Phi());
+    printf ("Vec_jetsSorted[1]: %10f , %10f , %10f \n", Vec_jetsSorted[1].Pt(), Vec_jetsSorted[1].Eta(), Vec_jetsSorted[1].Phi());
+    printf ("========================================================================= \n");
+    printf ("Resulting boost vector: \n");
+    printf ("========================================================================= \n");
+    printf ("Before: %10f , %10f , %10f \n", p4topHad.Pt(), p4topHad.Eta(), p4topHad.Phi());
+    printf ("After: %10f , %10f , %10f \n\n", p4topHad.BoostVector().Pt(), p4topHad.BoostVector().Eta(), p4topHad.BoostVector().Phi());
+  }
+
+  //Boost the hadronic leg components
+  Vec_jetsSorted[1].Boost(-p4topHad.BoostVector());
+  Vec_jetsSorted[2].Boost(-p4topHad.BoostVector());
+  Vec_jetsSorted[3].Boost(-p4topHad.BoostVector());
+  
+  if (DEBUG) {
+    printf ("========================================================================= \n");
+    printf ("Boosted vector (LEPTON LEG)\n");
+    printf ("========================================================================= \n");
+    printf ("fourVect_cLept: %10f , %10f , %10f \n", p4lepton.Pt(), p4lepton.Eta(), p4lepton.Phi());
+    printf ("========================================================================= \n");
+    printf ("Boosted vectors (HADRON LEG)\n");
+    printf ("========================================================================= \n");
+    printf ("Vec_jetsSorted[1]: %10f , %10f , %10f \n", Vec_jetsSorted[1].Pt(), Vec_jetsSorted[1].Eta(), Vec_jetsSorted[1].Phi());
+    printf ("Vec_jetsSorted[2]: %10f , %10f , %10f \n", Vec_jetsSorted[2].Pt(), Vec_jetsSorted[2].Eta(), Vec_jetsSorted[2].Phi());
+    printf ("Vec_jetsSorted[3]: %10f , %10f , %10f \n", Vec_jetsSorted[3].Pt(), Vec_jetsSorted[3].Eta(), Vec_jetsSorted[3].Phi());
+  }
+*/
+} //End switch2TTbarFrame()
 
 void ttgamma3::Begin(TTree * /*tree*/)
 {
@@ -297,36 +363,6 @@ void ttgamma3::SlaveBegin(TTree * tree)
   // MET
   hMET["MET_pre"] = new TH1F("MET_pre"+hname,"Missing Transverse Energy [GeV]", 50, 0, 300);
   hMET["MET"] = new TH1F("MET"+hname,"Missing Transverse Energy [GeV]", 50, 0, 300);
-  // photons
-  hphotons["mc_momID"] = new TH1F("photon_MCmomID","MC photon mother ID",51,-25.5,25.5);
-  hphotons["mc_momIDoverlap"] = new TH1F("photon_MCmomIDoverlap","MC photon mother ID",51,-25.5,25.5);
-  hphotons["N"] = new TH1F("photon_N"+hname,"Number of photons",8,-0.5,7.5);
-  hphotons["cut0_et"] = new TH1F("photon_cut0_pt"+hname,"p_{T}^{#gamma} [GeV/c]", 50, 20, 500);
-  hphotons["cut0_eta"] = new TH1F("photon_cut0_eta"+hname,"#eta^{#gamma}", 20, -2.1, 2.1);
-  hphotons["cut0_phi"] = new TH1F("photon_cut0_phi"+hname,"#phi^{#gamma}", 20, 0, 3.15);
-  //hphotons["cut1_pt"] = new TH1F("photon_cut1_pt"+hname,"p_{T}^{#gamma} [GeV/c]", 50, 20, 500);
-  //hphotons["cut1_eta"] = new TH1F("photon_cut1_eta"+hname,"#eta^{e}", 20, -2.1, 2.1);
-  //hphotons["cut1_phi"] = new TH1F("photon_cut1_phi"+hname,"#phi^{#mu}", 20, 0, 3.15);
-  hphotons["cut1_eVeto"] = new TH1F("photon_cut1_eVeto"+hname,"electron veto",2,-0.5,1.5);
-  hphotons["cut1_hasConvTrk"] = new TH1F("photon_cut1_hasConvTrk"+hname,"HasConversionTrk",2,-0.5,1.5);
-  hphotons["cut2_HoverE"] = new TH1F("photon_cut2_HoverE"+hname,"H/E",20,0,1);
-  hphotons["cut3_sigmaietaieta"] = new TH1F("photon_cut3_sigmaietaieta"+hname,"#sigma_{i#etai#eta}",50,0,0.03);
-  hphotons["cut4_chHadIso"] = new TH1F("photon_cut4_chHadIso"+hname,"Charged Hadron Isolation",40,0,10);
-  hphotons["cut5_ntHadIso"] = new TH1F("photon_cut5_ntHadIso"+hname,"Neutral Hadron Isolation",40,0,10);
-  hphotons["cut6_pfIso"] = new TH1F("photon_cut6_pfIso"+hname,"PF photon Isolation",40,0,10);
-  hphotons["sigmaietaieta"] = new TH1F("photon_sigmaietaieta"+hname,"#sigma_{i#etai#eta}",50,0,0.03);
-  hphotons["chHadIso"] = new TH1F("photon_chHadIso"+hname,"Charged Hadron Isolation",40,0,10);
-  hphotons["Ngood"] = new TH1F("photon_Ngood"+hname,"Number of photons",8,-0.5,7.5);
-  hphotons["et"] = new TH1F("photon_pt"+hname,"p_{T}^{#gamma} [GeV/c]", 50, 20,500);
-  hphotons["eta"] = new TH1F("photon_eta"+hname,"#eta^{#gamma}", 20, -2.1, 2.1);
-  hphotons["phi"] = new TH1F("photon_phi"+hname,"#phi^{#gamma}", 20, 0, 3.15);
-  hphotons["pfIso"] = new TH1F("photon_pfIso"+hname,"PF photon Isolation",40,0,10);
-  hphotons["ntHadIso"] = new TH1F("photon_ntHadIso"+hname,"Neutral Hadron Isolation",40,0,10);
-  hphotons["SCFRChIso"] = new TH1F("photon_SCFRChIso"+hname,"SCFR Charged Hadron Isolation",100,-0.5,20);
-  hphotons["RandIso"] = new TH1F("photon_RandIso"+hname,"Random Cone Isolation",100,-0.5,20);
-  hphotons["temp_sigmaietaieta"] = new TH1F("photon_temp_sigmaietaieta"+hname,"#sigma_{i#etai#eta}",50,0,0.03);
-  hphotons["temp_SCFRChIso"] = new TH1F("photon_temp_SCFRChIso"+hname,"SCFR Charged Hadron Isolation",100,-0.5,20);
-  //hphotons["temp2D_sigmaVsSCFRCh"] = new TH2F("photon_temp_sigmaVsSCFRCh"+hname,"#sigma_{i#etai#eta} vs ",50,0,0.03,100,-0.5,20); 
   // mass
   hM["M3"] = new TH1F("M3"+hname,"M3 [GeV/c^{2}]", 100, 0, 1000); 
   hM["WMt"] = new TH1F("Mt"+hname,"M_{T}(W) [GeV/c^{2}]", 50, 0, 300);
@@ -335,7 +371,6 @@ void ttgamma3::SlaveBegin(TTree * tree)
 
   map<string,TH1* > allhistos = hmuons;
   allhistos.insert( helectrons.begin(), helectrons.end() );
-  allhistos.insert( hphotons.begin(), hphotons.end() );
   allhistos.insert( hmuons.begin(), hmuons.end() );
   allhistos.insert( hjets.begin(), hjets.end() );
   allhistos.insert( hbtag.begin(), hbtag.end() );
@@ -368,16 +403,7 @@ void ttgamma3::SlaveBegin(TTree * tree)
        fCutLabels.push_back("3Jets");
        fCutLabels.push_back("4Jets");
        fCutLabels.push_back("Onebtag");
-       fCutLabels.push_back("PhotonFiducial");
-       fCutLabels.push_back("PhotonEleVeto");
-       fCutLabels.push_back("PhotonHoverE");
-       fCutLabels.push_back("PhotonSigmaieta");
-       fCutLabels.push_back("PhotonchHadIso");
-       fCutLabels.push_back("PhotonntHadIso");
-       fCutLabels.push_back("PhotonIso");
-       fCutLabels.push_back("PhotonDeltaRLepton");
-       fCutLabels.push_back("PhotonDeltaRJet");
-       fCutLabels.push_back("OnePhoton");
+       fCutLabels.push_back("Twobtag");
      }
    else if (fChannel==2)
      { //electron+jets
@@ -394,16 +420,7 @@ void ttgamma3::SlaveBegin(TTree * tree)
        fCutLabels.push_back("3Jets");
        fCutLabels.push_back("4Jets");
        fCutLabels.push_back("Onebtag");
-       fCutLabels.push_back("PhotonFiducial");
-       fCutLabels.push_back("PhotonEleVeto");
-       fCutLabels.push_back("PhotonHoverE");
-       fCutLabels.push_back("PhotonSigmaieta");
-       fCutLabels.push_back("PhotonchHadIso");
-       fCutLabels.push_back("PhotonntHadIso");
-       fCutLabels.push_back("PhotonIso");
-       fCutLabels.push_back("PhotonDeltaRLepton");
-       fCutLabels.push_back("PhotonDeltaRJet");
-       fCutLabels.push_back("OnePhoton");
+       fCutLabels.push_back("Twobtag");
      }
 
    hcutflow = new TH1F("cutflow","cut flow", fCutLabels.size(), 0.5, fCutLabels.size() +0.5 );
@@ -470,80 +487,6 @@ Bool_t ttgamma3::Process(Long64_t entry)
                 }
             }
         }
-    }
-
-  ////////////////////////////////////////////////
-  // Remove overlapping photon events in ttjets MG
-  ////////////////////////////////////////////////
-  if ( fSample == "ttjets_1l" || fSample == "ttjets_2l" || fSample == "ttjets_0l" || fSample == "ttjets_0l_g" || fSample == "ttjets_1l_g" || fSample == "ttjets_2l_g" )
-    {
-      if (fVerbose) cout << "Checking if event has overlapping photons" << endl;
- 
-      int mcNphotons = 0;
-      int mcNphotons_overlap = 0;
-      
-      TLorentzVector p4bQuark;
-      TLorentzVector p4bbarQuark;
-      vector < TLorentzVector > p4MCPhotonsVec;
-      vector < int > momPhotonIDVec;
-      TLorentzVector tmpp4;
-
-      for(int imc = 0; imc < fReader->nMC; ++imc)             //Loop over gen particles
-        {
-          // photons
-          if ( fReader->mcPID->at(imc) == 22 && fReader->mcStatus->at(imc) == 1)
-            {
-              tmpp4.SetPtEtaPhiE( fReader->mcPt->at(imc), fReader->mcEta->at(imc), fReader->mcPhi->at(imc), fReader->mcE->at(imc) );
-              hphotons["mc_momID"]->Fill( fReader->mcMomPID->at(imc) );
-              
-              //if ( fabs(fReader->mcMomPID->at(imc)) == 5 ||
-              //     fabs(fReader->mcMomPID->at(imc)) == 24 )
-              if (fReader->mcParentage->at(imc)==2 || (fReader->mcParentage->at(imc)==10 && fabs(fReader->mcMomPID->at(imc))==24) )
-                // photon mom can only be from b or W
-                {
-                  p4MCPhotonsVec.push_back( tmpp4 );
-                  momPhotonIDVec.push_back( fReader->mcMomPID->at(imc) );
-                  mcNphotons++;
-                }
-            }
-          if ( fabs(fReader->mcPID->at(imc)) == 5 && fabs(fReader->mcMomPID->at(imc)) == 6 ) // b from tops
-            {
-              if (fReader->mcPID->at(imc) == 5) p4bQuark.SetPtEtaPhiE( fReader->mcPt->at(imc), fReader->mcEta->at(imc), fReader->mcPhi->at(imc), fReader->mcE->at(imc) );
-              if (fReader->mcPID->at(imc) ==-5) p4bbarQuark.SetPtEtaPhiE( fReader->mcPt->at(imc), fReader->mcEta->at(imc), fReader->mcPhi->at(imc), fReader->mcE->at(imc) );
-            }
-        }
-      
-      int ipho = 0;
-      for ( vector<TLorentzVector>::const_iterator ivec= p4MCPhotonsVec.begin(); ivec != p4MCPhotonsVec.end(); ++ivec )
-        {
-          tmpp4 = *ivec;
-          //hphotons["mc_momID"]->Fill( momPhotonIDVec[ipho] );
-          if ( tmpp4.Et() > 20 && tmpp4.DeltaR( p4bQuark ) > 0.1 && tmpp4.DeltaR( p4bbarQuark ) > 0.1 )
-            {
-              mcNphotons_overlap++;
-              hphotons["mc_momIDoverlap"]->Fill( momPhotonIDVec[ipho] );
-            }
-          //else 
-          //  {
-          //    hphotons["mc_momIDpass"]->Fill( momPhotonIDVec[ipho] );
-          //  }
-          ipho++;
-        }
-      p4MCPhotonsVec.clear();
-
-      if ( mcNphotons_overlap > 0 && fKeepOnlyPhotons == false && fdoSkim == false)
-        {
-          if (fVerbose) cout << "overlap photon, skip event" << endl;
-          fN_tt_filter++;
-          return kTRUE;
-        }
-      if ( mcNphotons_overlap == 0 && fKeepOnlyPhotons == true )
-        {
-          if (fVerbose) cout << "no photon found, skip event" << endl;
-          return kTRUE;
-        }
-          
-      if (fVerbose) cout << "event kept." << endl;
     }
 
   ////////////////////////////////////////
@@ -954,6 +897,10 @@ Bool_t ttgamma3::Process(Long64_t entry)
     {
       cutmap["Onebtag"] += EvtWeight;
     }
+
+  if ( Nbtags >= 2 ) {
+      cutmap["Twobtag"] += EvtWeight;
+  }
   //else
   //  return kTRUE;
 
@@ -979,7 +926,7 @@ Bool_t ttgamma3::Process(Long64_t entry)
   bool passPreSel = false;
   //if ( pass1stJet && pass2ndJet && pass3rdJet && pass4thJet &&
   if ( Ngood_Jets > 3 &&
-       Nbtags >= 1 )
+       Nbtags > 1 ) //FIXME setting b-tags to 2 or more. Double-check with PAG selection recommendation
     passPreSel = true;
 
   if ( ! passPreSel ) return kTRUE;
@@ -1036,142 +983,22 @@ Bool_t ttgamma3::Process(Long64_t entry)
 
   if (fVerbose) cout << " pre-selection done." << endl;
 
-  ///////////////////////////////////
-  // PHOTONS
-  ///////////////////////////////////
-  float Ngamma[8] = {0.};
-  int Ngood_gamma = 0;
-  
-  // https://twiki.cern.ch/twiki/bin/viewauth/CMS/CutBasedPhotonID2012
-  // photon ID is not going to be changed every time this code runs
-  // barrel/endcap, Loose/Medium/Tight
-  //int    photonID_IsConv[2][3]                = { {0, 0, 0} , {0, 0, 0} };
-  double photonID_HoverE[2][3]                = { {0.05, 0.05, 0.05} , {0.05, 0.05, 0.05} };
-  double photonID_SigmaIEtaIEta[2][3]         = { {0.012, 0.011, 0.011} , {0.034, 0.033, 0.031} };
-  double photonID_RhoCorrR03ChHadIso[2][3]    = { {2.6, 1.5, 0.7} , {2.3, 1.2, 0.5} };
-  double photonID_RhoCorrR03NeuHadIso_0[2][3] = { {3.5, 1.0, 0.4} , {2.9, 1.5, 1.5} };
-  double photonID_RhoCorrR03NeuHadIso_1[2][3] = { {0.04, 0.04, 0.04} , {0.04, 0.04, 0.04} };
-  double photonID_RhoCorrR03PhoIso_0[2][3]    = { {1.3, 0.7, 0.5} , {999, 1.0, 1.0} };
-  double photonID_RhoCorrR03PhoIso_1[2][3]    = { {0.005, 0.005, 0.005} , {0.005, 0.005, 0.005} };
-  // we use loose selection
-  int photon_ID = 0;
-
-  for(int ip = 0; ip < fReader->nPho; ++ip)	 //Loop over the photons in a event
-    {
-      Ngamma[0] += EvtWeight;
-
-      TLorentzVector tmpp4;
-      tmpp4.SetPtEtaPhiE( fReader->phoEt->at(ip),
-                          fReader->phoEta->at(ip),
-                          fReader->phoPhi->at(ip),
-                          fReader->phoE->at(ip) );
-
-      int region = 0; //barrel
-      if( fabs( tmpp4.Eta() )>1.5) region = 1; //endcap
-
-      hphotons["cut0_et"]->Fill( tmpp4.Et(), EvtWeight );
-      hphotons["cut0_eta"]->Fill( tmpp4.Eta(), EvtWeight );
-      hphotons["cut0_phi"]->Fill( tmpp4.Phi(), EvtWeight );
-
-      if (fVerbose) cout << "photon: et= "<< fReader->phoEt->at(ip) << " eta= "<< fReader->phoEta->at(ip) << endl;
-
-      if( tmpp4.Et() > 25 &&
-          fabs( tmpp4.Eta() ) < 1.4442 )
-      {
-        Ngamma[1]+= EvtWeight;
-
-        bool passelectronveto = (fReader->phoEleVeto->at(ip) == 0);        
-        hphotons["cut1_eVeto"]->Fill( int(passelectronveto), EvtWeight );
-        if (fVerbose) cout << "photon pass e veto: " << passelectronveto << endl;
-
-        if ( passelectronveto )
-          {
-            Ngamma[2]+= EvtWeight;
-            
-            // check conversion tracks
-            hphotons["cut1_hasConvTrk"]->Fill( int(fReader->phoIsConv->at(ip)) , EvtWeight );
-
-            float HoverE = fReader->phoHoverE->at(ip);
-            hphotons["cut2_HoverE"]->Fill( HoverE, EvtWeight );
-            if (fVerbose) cout << "photon H/E= " << HoverE << endl;
-
-            if ( HoverE < photonID_HoverE[region][photon_ID] )
-              {
-                Ngamma[3]+= EvtWeight;
-
-                float ietaieta = fReader->phoSigmaIEtaIEta->at(ip);
-                hphotons["cut3_sigmaietaieta"]->Fill( ietaieta, EvtWeight );
-                if (fVerbose) cout << "photon: ietaieta = " << ietaieta << endl;
-
-                float chHadIso = fReader->phoPFChIso->at(ip) - fReader->rho2012 * phoEffArea03ChHad( tmpp4.Eta() );
-                float SCFRChIso = fReader->phoSCRChIso->at(ip) - fReader->rho2012 * phoEffArea03ChHad( tmpp4.Eta() );
-                float ntHadIso = fReader->phoPFNeuIso->at(ip) - fReader->rho2012 * phoEffArea03NeuHad( tmpp4.Eta() );
-                float rand_chHadIso = fReader->phoRandConeChIso->at(ip) - fReader->rho2012 * phoEffArea03ChHad( tmpp4.Eta() );
-                float pfIso = fReader->phoPFPhoIso->at(ip)  - fReader->rho2012 * phoEffArea03Pho( tmpp4.Eta() );
-
-                // templates
-                if ( ntHadIso < (photonID_RhoCorrR03NeuHadIso_0[region][photon_ID] + tmpp4.Et() * photonID_RhoCorrR03NeuHadIso_1[region][photon_ID]) )
-                  {
-                    hphotons["temp_sigmaietaieta"]->Fill( ietaieta, EvtWeight );
-                    hphotons["temp_SCFRChIso"]->Fill( SCFRChIso, EvtWeight );
-                    //hphotons["temp2D_sigmaVsSCFRCh"]->Fill( (double)ietaieta, (double)SCFRChIso, EvtWeight);
-                  }
-
-                if ( ietaieta < photonID_SigmaIEtaIEta[region][photon_ID] )
-                  {
-                    Ngamma[4]+= EvtWeight;
-
-                    hphotons["cut4_chHadIso"]->Fill( chHadIso, EvtWeight );
+/////////////////////////////////////////////////////////////////////////////
+//                  Kinematic Fitting Here
+/////////////////////////////////////////////////////////////////////////////
 
 
-                    //if ( chHadIso < (photonID_RhoCorrR03ChHadIso[region][photon_ID] + tmpp4.Et() * photonID_RhoCorrR03ChHadIso[region][photon_ID]) )
-                    //{
-                    //  Ngamma[5]+=EvtWeight;
-                    hphotons["cut5_ntHadIso"]->Fill( ntHadIso, EvtWeight );
 
-                    if ( ntHadIso < (photonID_RhoCorrR03NeuHadIso_0[region][photon_ID] + tmpp4.Et() * photonID_RhoCorrR03NeuHadIso_1[region][photon_ID]) )
-                      {
-                        Ngamma[6]+= EvtWeight;
-                        hphotons["cut6_pfIso"]->Fill( chHadIso, EvtWeight );
-                        if ( pfIso < ( photonID_RhoCorrR03PhoIso_0[region][photon_ID] + tmpp4.Et() * photonID_RhoCorrR03PhoIso_1[region][photon_ID] ) ) 
-                          {
-                            Ngamma[7]+= EvtWeight;
-                            if ( Ngood_gamma == 0 )
-                              {
-                                p4photon = tmpp4;
-                                hphotons["sigmaietaieta"]->Fill( ietaieta, EvtWeight );
-                                hphotons["chHadIso"]->Fill( chHadIso, EvtWeight );
-                                hphotons["SCFRChIso"]->Fill( SCFRChIso, EvtWeight );
-                                hphotons["RandIso"]->Fill( rand_chHadIso, EvtWeight );
-                              }
-                            Ngood_gamma++;
-                          }
-                      }
-                      
-                  }
-              } // HoverE
-          } //eVeto
-      } //fidutial
 
-    } // end photons
 
-  for ( int ibin=0; ibin < 8; ibin++)
-    {
-      hphotons["N"]->SetBinContent( ibin, Ngamma[ibin] );
-      if ( Ngamma[ibin] > 0 )
-        {
-          if (ibin==1) cutmap["PhotonFiducial"] += EvtWeight;
-          if (ibin==2) cutmap["PhotonEleVeto"] += EvtWeight;
-          if (ibin==3) cutmap["PhotonHoverE"] += EvtWeight;
-          if (ibin==4) cutmap["PhotonSigmaieta"] += EvtWeight;
-          if (ibin==5) cutmap["PhotonchHadIso"] += EvtWeight;
-          if (ibin==6) cutmap["PhotonntHadIso"] += EvtWeight;
-          if (ibin==7) cutmap["PhotonIso"] += EvtWeight;
-          
-        }
-    }
-  hphotons["Ngood"]->Fill( Ngood_gamma );
+/////////////////////////////////////////////////////////////////////////////
+//                  Do the BOOST
+/////////////////////////////////////////////////////////////////////////////
 
+//Pass the objects of interest to boost function - to parent t and tbar
+switch2TTbarFrame(p4lepton, p4MET,  DEBUG);
+
+/* Histo filling...worry about later
   if ( Ngood_gamma >0 )
     {
 
@@ -1196,7 +1023,7 @@ Bool_t ttgamma3::Process(Long64_t entry)
       hjets["pt1"]->Fill( p4jets[0].Pt(), EvtWeight );
       hMET["MET"]->Fill( fReader->pfMET, EvtWeight );
     }
-
+*/
   // clear vectors
   p4jets.clear();
   vec_btags.clear();

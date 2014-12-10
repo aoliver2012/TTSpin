@@ -14,6 +14,7 @@
 #include <TH1F.h>
 #include <TString.h>
 #include <TProofOutputFile.h>
+#include <TLorentzVector.h>
 
 // STD libraries
 #include <map>
@@ -34,6 +35,7 @@ public :
   //void              CreateHistograms();
   TString           fMyOpt;
   int               fChannel;
+  bool		    DEBUG;
   bool              fVerbose;
   bool              fIsMC;
   bool              fPUreweighting;
@@ -70,6 +72,7 @@ public :
   map< string, TH1*> hM;
   map< string, TH1*> hMC;
   void               WriteHistograms(const char* name, map<string, TH1*> hcontainer);
+  void		     switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4Met, bool DEBUG);
   TFile          *fFile;
 
   TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -83,6 +86,7 @@ public :
 
   ttgamma3(TTree * /*tree*/ =0) : fProofFile(0),h1test(0),hPU_weights(0),fFile(0),fChain(0) 
   { 
+    DEBUG    = 	     false;
     fChannel =       1; //default 2=e+jets, 1=mu+jets
     fVerbose =       false;
     fIsMC    =       false;
