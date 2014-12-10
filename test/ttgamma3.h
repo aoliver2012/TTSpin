@@ -72,7 +72,7 @@ public :
   map< string, TH1*> hM;
   map< string, TH1*> hMC;
   void               WriteHistograms(const char* name, map<string, TH1*> hcontainer);
-  void		     switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4Met, bool DEBUG);
+  void		     switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4Met, vector<TLorentzVector> &Vec_jetsSorted, bool DEBUG);
   TFile          *fFile;
 
   TTree          *fChain;   //!pointer to the analyzed TTree or TChain

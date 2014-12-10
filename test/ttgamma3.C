@@ -188,11 +188,11 @@ void ttgamma3::WriteHistograms(const char* name, map<string, TH1*> hcontainer)
 //FIXME Will need to organize jets in a meaningful way...or use b-tag info vector to sort
 //FIXME this WILL NOT work until the b-tag assignments are made via the kinematic fitter, hence the name sorted!!!
 //FIXME The assignments will be lep-bjet, had-bjet, higher pT q-jet, lower pT q-jet in vec_jetsSorted
-void switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4MET,  bool DEBUG) {
+void switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4MET, vector<TLorentzVector> &Vec_jetsSorted, bool DEBUG) {
   
   //Sum 4-vectors for calculating the boost
   TLorentzVector p4topLep = p4lepton+p4MET;//+Vec_jetsSorted[0];  				//Form Top Quark 4-Vector: Leptonic
-  /*TLorentzVector p4topHad = Vec_jetsSorted[1]+Vec_jetsSorted[2]+Vec_jetsSorted[3];	//Form Top Quark 4-Vector: Hadronic
+  TLorentzVector p4topHad = Vec_jetsSorted[1]+Vec_jetsSorted[2]+Vec_jetsSorted[3];	//Form Top Quark 4-Vector: Hadronic
 
   if (DEBUG){
     printf ("At switch2TTbarFrame() \n" );
@@ -243,7 +243,6 @@ void switch2TTbarFrame(TLorentzVector &p4lepton, TLorentzVector &p4MET,  bool DE
     printf ("Vec_jetsSorted[2]: %10f , %10f , %10f \n", Vec_jetsSorted[2].Pt(), Vec_jetsSorted[2].Eta(), Vec_jetsSorted[2].Phi());
     printf ("Vec_jetsSorted[3]: %10f , %10f , %10f \n", Vec_jetsSorted[3].Pt(), Vec_jetsSorted[3].Eta(), Vec_jetsSorted[3].Phi());
   }
-*/
 } //End switch2TTbarFrame()
 
 void ttgamma3::Begin(TTree * /*tree*/)
@@ -996,7 +995,7 @@ Bool_t ttgamma3::Process(Long64_t entry)
 /////////////////////////////////////////////////////////////////////////////
 
 //Pass the objects of interest to boost function - to parent t and tbar
-switch2TTbarFrame(p4lepton, p4MET,  DEBUG);
+switch2TTbarFrame(p4lepton, p4MET, p4jets, DEBUG);
 
 /* Histo filling...worry about later
   if ( Ngood_gamma >0 )
